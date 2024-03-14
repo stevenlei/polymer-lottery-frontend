@@ -9,10 +9,12 @@ const config = {
   "optimism-sepolia": {
     address: process.env.NEXT_PUBLIC_OPTIMISM_CONTRACT_ADDRESS,
     channelId: process.env.NEXT_PUBLIC_OPTIMISM_UNIVERSAL_CHANNEL_ID,
+    rpcUrl: process.env.NEXT_PUBLIC_OPTIMISM_ALCHEMY_API_URL,
   },
   "base-sepolia": {
     address: process.env.NEXT_PUBLIC_BASE_CONTRACT_ADDRESS,
     channelId: process.env.NEXT_PUBLIC_BASE_UNIVERSAL_CHANNEL_ID,
+    rpcUrl: process.env.NEXT_PUBLIC_BASE_ALCHEMY_API_URL,
   },
 };
 
@@ -25,6 +27,7 @@ export default function Home() {
   const [bridged, setBridged] = useState(false);
   const [bridgeRecords, setBridgeRecords] = useState([]);
   const [bridging, setBridging] = useState(false);
+  const [isOver, setIsOver] = useState(false);
 
   useEffect(() => {
     //
@@ -55,24 +58,45 @@ export default function Home() {
       setRound(Number(round) + 1);
     });
 
-    contract.on("*", (event) => {
-      console.log("Event", event);
+    contract.isLotteryOver().then((isOver) => {
+      console.log("isOver", isOver);
+      setIsOver(isOver);
     });
 
+    // contract.on("*", (event) => {
+    //   console.log("Event", event);
+    // });
+
     contract.on("BridgeStarted", (user, round, direction) => {
-      console.log("Event", user, round, direction);
+      console.log("BridgeStarted", user, round, direction);
     });
 
     contract.on("BridgeReceived", (user, round, direction) => {
-      console.log("Event", user, round, direction);
+      console.log("BridgeReceived", user, round, direction);
+      refreshBridgeRecords();
     });
 
     contract.on("BridgeAcknowledged", (user, round, direction) => {
-      console.log("Event", user, round, direction);
+      console.log("BridgeAcknowledged", user, round, direction);
+      refreshBridgeRecords();
     });
 
     refreshBridgeRecords();
   }, []);
+
+  useEffect(() => {
+    // check if the user is bridged in this round
+    if (walletAddress) {
+      const provider = new ethers.JsonRpcProvider(config[chainToBridge].rpcUrl);
+      const contractAddress = config[chainToBridge].address;
+      const contract = new ethers.Contract(contractAddress, abi, provider);
+
+      contract.userBridges(round - 1, walletAddress).then((bridged) => {
+        console.log("bridged", bridged);
+        setBridged(bridged);
+      });
+    }
+  }, [walletAddress, chain]);
 
   const refreshBridgeRecords = () => {
     getAllBridgesOnBothChains().then((bridges) => {
@@ -98,16 +122,10 @@ export default function Home() {
         });
 
         window.ethereum.on("chainChanged", (chainId) => {
-          getChain().then((chain) => {
-            setChain(chain);
-            console.log(chain);
-          });
+          refreshAfterWalletConnect();
         });
 
-        getChain().then((chain) => {
-          setChain(chain);
-          console.log(chain);
-        });
+        refreshAfterWalletConnect();
       } catch (error) {
         console.error(error);
       }
@@ -116,6 +134,13 @@ export default function Home() {
 
   const shortenAddress = (address) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  };
+
+  const refreshAfterWalletConnect = () => {
+    getChain().then((chain) => {
+      setChain(chain);
+      console.log(chain);
+    });
   };
 
   const getChain = async () => {
@@ -231,7 +256,7 @@ export default function Home() {
           user: bridge.user,
           direction: Number(bridge.direction),
           timestamp: Number(bridge.timestamp),
-          round: Number(bridge.round),
+          round: Number(bridge.round) + 1,
         };
       })
       .sort((a, b) => b.timestamp - a.timestamp);
@@ -277,20 +302,54 @@ export default function Home() {
                 className="p-4 bg-slate-100 rounded-xl text-slate-600 mr-4"
               >
                 <p>
-                  {shortenAddress(record.user)} bridged to{" "}
-                  {record.direction === 1
-                    ? "optimism-sepolia"
-                    : record.direction === 2
-                    ? "base-sepolia"
-                    : "unknown"}{" "}
-                  in round {record.round} <br /> @{" "}
-                  {new Date(record.timestamp * 1000).toISOString()}
+                  <span className="font-mono text-black text-sm bg-white rounded px-2 py-0.5 ring-1 ring-slate-300">
+                    {shortenAddress(record.user)}
+                  </span>{" "}
+                  bridged to{" "}
+                  {record.direction === 1 ? (
+                    <span className="base-sepolia px-2 py-0.5 rounded-full text-sm">
+                      base-sepolia
+                    </span>
+                  ) : record.direction === 2 ? (
+                    <span className="optimism-sepolia px-2 py-0.5 rounded-full text-sm">
+                      optimism-sepolia
+                    </span>
+                  ) : (
+                    "unknown"
+                  )}{" "}
+                  in round #{record.round} <br />
+                  <span className="text-xs">
+                    @ {new Date(record.timestamp * 1000).toISOString()}
+                  </span>
                 </p>
               </div>
             );
           })}
         </div>
         <div className="w-1/2 bg-slate-100 rounded-xl self-start p-12 flex flex-col items-center justify-center text-lg text-slate-600">
+          {!isOver && (
+            <>
+              <h3 className="text-3xl text-center mb-4 text-slate-900">
+                Round #{round === 0 ? "..." : round}
+              </h3>
+              <h4 className="text-2xl text-center mb-4">
+                <span
+                  className={`${chainToBridge} text-lg px-2 py-0.5 rounded-full`}
+                >
+                  {chainToBridge}
+                </span>{" "}
+                ➡️{" "}
+                <span
+                  className={`${oppositeChain(
+                    chainToBridge
+                  )} text-lg px-2 py-0.5 rounded-full`}
+                >
+                  {oppositeChain(chainToBridge)}
+                </span>
+              </h4>
+            </>
+          )}
+
           {!walletConnected && (
             <p>Please Connect your wallet to use the Lottery Bridge</p>
           )}
@@ -315,31 +374,33 @@ export default function Home() {
 
           {walletConnected && chain === chainToBridge && (
             <>
-              {!bridged && (
+              {!isOver && (
                 <>
-                  <h3 className="text-3xl text-center mb-2 text-slate-900">
-                    Round #{round}
-                  </h3>
-                  So all of us are bridging to {chain} in this round. Join us?
-                  <button
-                    className="px-4 py-2 text-white bg-black text-lg rounded-md mt-8 disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={bridging}
-                    onClick={bridge}
-                  >
-                    {bridging ? "Bridging..." : "Bridge Now"}
-                  </button>
+                  {!bridged && (
+                    <>
+                      So all of us are bridging to {oppositeChain(chain)} in
+                      this round. Join us?
+                      <button
+                        className="px-4 py-2 text-white bg-black text-lg rounded-md mt-8 disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={bridging}
+                        onClick={bridge}
+                      >
+                        {bridging ? "Bridging..." : "Bridge Now"}
+                      </button>
+                    </>
+                  )}
+                  {bridged && (
+                    <>
+                      <p>
+                        You have successfully bridged to {oppositeChain(chain)}{" "}
+                        in this round. Thank you for participating!
+                      </p>
+                    </>
+                  )}
                 </>
               )}
-              {bridged && (
-                <>
-                  <h3 className="text-3xl text-center mb-2 text-slate-900">
-                    Round #{round}
-                  </h3>
-                  <p>
-                    You have successfully bridged to {chain} in this round.
-                    Thank you for participating!
-                  </p>
-                </>
+              {isOver && (
+                <p>The Lottery is over. Thank you for participating!</p>
               )}
             </>
           )}
