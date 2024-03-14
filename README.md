@@ -1,38 +1,34 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Lottery Bridge App - Frontend
+
+This is the frontend for the Lottery Bridge App, a Polymer challenged from [https://github.com/polymerdevs/Quest-Into-The-Polyverse-Phase-1/issues/13](https://github.com/polymerdevs/Quest-Into-The-Polyverse-Phase-1/issues/13).
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-```
+You need to deploy the Lottery contract on the Optimism (Sepolia) network and the Base (Sepolia) network. You can use the following repository to deploy the contracts:
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+[https://github.com/stevenlei/polymer-lottery-smart-contract](https://github.com/stevenlei/polymer-lottery-smart-contract)
 
-You can start editing the page by modifying `pages/index.js`. The page auto-updates as you edit the file.
+You will get the contract addresses after deploying the contracts.
 
-[API routes](https://nextjs.org/docs/api-routes/introduction) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.js`.
+### Installation
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/api-routes/introduction) instead of React pages.
-
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+1. Clone this repository.
+2. Copy `.env.example` to `.env`
+3. Edit the following values:
+   - `NEXT_PUBLIC_OPTIMISM_CONTRACT_ADDRESS` - The address of the Lottery contract on the Optimism (Sepolia) network.
+   - `NEXT_PUBLIC_BASE_CONTRACT_ADDRESS` - The address of the Lottery contract on the Base (Sepolia) network.
+   - `NEXT_PUBLIC_OPTIMISM_ALCHEMY_API_URL` - The Alchemy API URL for the Optimism (Sepolia) network.
+   - `NEXT_PUBLIC_BASE_ALCHEMY_API_URL` - The Alchemy API URL for the Base (Sepolia) network.
+4. Run `npm install` to install the dependencies.
+5. Run `npm run dev` to start the development server.
+6. Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
 ## Learn More
 
-To learn more about Next.js, take a look at the following resources:
+Join the [Polymer Labs Community](https://linktr.ee/polymerdao) and build together.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## License
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+Distributed under the MIT License.
